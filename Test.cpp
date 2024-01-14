@@ -21,12 +21,15 @@ struct Pair
 
 int main()
 {
-	int* a = new int(1);
 	unique_ptr<int[]>p_unique = make_unique<int[]>(12);
+
 	my_unique_ptr<int> pMyUnique(new int(30));
-	cout << *pMyUnique << endl;
-	*pMyUnique = 24;
-	cout << *pMyUnique << endl;
+	my_unique_ptr<int> pMyUnique2 = move(pMyUnique);
+	cout << *pMyUnique2 << endl;
+	*pMyUnique2 = 24;
+	cout << *pMyUnique2 << endl;
+
+	pMyUnique = move(pMyUnique2);
 
 	my_unique_ptr<Pair> pPair(new Pair(4, 6));
 	cout << "x: " << pPair->x << "; y = " << pPair->y << endl;
