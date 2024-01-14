@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include "my_unique_ptr.h"
+#include "my_shared_ptr.h"
 
 using namespace std;
 
@@ -21,7 +22,7 @@ struct Pair
 
 void testUnique()
 {
-	cout << "Testing Unique" << endl;
+	cout << "TESTING UNIQUE" << endl;
 	my_unique_ptr<int> pMyUnique(new int(30));
 	my_unique_ptr<int> pMyUnique2 = (new int(20));
 	const int ARR_LENGTH = 15;
@@ -49,26 +50,49 @@ void testUnique()
 	pMyUnique.swap(pMyUnique2);
 	cout << "After swapping" << endl;
 	cout << "1: " << *pMyUnique << ", 2: " << *pMyUnique2 << endl;
+	cout << "END UNIQUE" << endl;
 }
 
 void testShared()
 {
+	cout << "TESTING SHARED" << endl;
 	shared_ptr<int> p_shared = make_shared<int>(123);
-	shared_ptr<int>* p_shared3 = new shared_ptr<int>(new int[10], [](int* ptr) {
-		delete[]ptr;
+	
+	my_shared_ptr<int> pShared1(new int(10));
+	my_shared_ptr<int> pShared2(pShared1);
+	my_shared_ptr<int> pShared3(new int(20));
+	const int ARR_LENGTH = 15;
+	my_shared_ptr<int, void(*)(int*)> pSharedArr(new int[ARR_LENGTH], [](int* ptr)
+		{
+			delete[]ptr;
 		});
 
-	shared_ptr<int> p_shared2 = p_shared;
-	int count1 = p_shared.use_count();
-	int count2 = p_shared.use_count();
-	cout << "Count of refs 1" << count1 << endl;
-	cout << "Count of refs 2" << count2 << endl;
-	p_shared2 = nullptr;
-	count1 = p_shared.use_count();
-	cout << "Count of refs 1" << count1 << endl;
+	cout << "Ref count: 1 - " + pShared1.use_count() 
+		<< ", 2 - " << pShared2.use_count() 
+		<< ", 3 - " << pShared3.use_count() << endl;
+
+	pShared1 = pShared3;
+
+	cout << "Ref count: 1 - " + pShared1.use_count()
+		<< ", 2 - " << pShared2.use_count()
+		<< ", 3 - " << pShared3.use_count() << endl;
+
+
+	pShared2 = pShared1;
+
+	for (int i = 0; i < ARR_LENGTH; i++)
+	{
+		pSharedArr[i] = i;
+		cout << pSharedArr[i] << " ";
+	}
+	cout << endl;
+	cout << "END SHARED" << endl;
 }
 
 int main()
 {
 	testUnique();
+	cout << endl;
+	testShared();
+	cout << endl;
 }
