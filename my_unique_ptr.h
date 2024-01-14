@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-template <class T>
+template <class T, class Deleter = std::default_delete<T>>
 class my_unique_ptr
 {
 public:
@@ -9,6 +9,12 @@ public:
 	{
 		std::cout << "Constructor" << std::endl;
 		_ptr = ptr;
+	}
+	my_unique_ptr(T* ptr, Deleter deleter)
+	{
+		std::cout << "Constructor" << std::endl;
+		_ptr = ptr;
+		_deleter = deleter;
 	}
 	my_unique_ptr(my_unique_ptr&& otherPtr) noexcept
 	{
@@ -23,7 +29,7 @@ public:
 		{
 			return;
 		}
-		delete _ptr;
+		_deleter(_ptr);
 	}
 	my_unique_ptr(const my_unique_ptr<T>&) = delete;
 	my_unique_ptr& operator=(const my_unique_ptr<T>&) = delete;
@@ -62,4 +68,5 @@ public:
 	}
 private:
 	T* _ptr;
+	Deleter _deleter;
 };
