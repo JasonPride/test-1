@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 template <class T, class Deleter = std::default_delete<T>>
 class my_unique_ptr
