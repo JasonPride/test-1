@@ -21,11 +21,11 @@ struct Pair
 
 void testUnique()
 {
-	unique_ptr<int[]>p_unique = make_unique<int[]>(12);
-	typedef void (*OwnDeleter)(int*);
+	cout << "Testing Unique" << endl;
 	my_unique_ptr<int> pMyUnique(new int(30));
-	my_unique_ptr<int> pMyUnique2 = move(pMyUnique);
-	my_unique_ptr<int, void(*)(int*)> pMyUnique3(new int[15], [](int* arr)
+	my_unique_ptr<int> pMyUnique2 = (new int(20));
+	const int ARR_LENGTH = 15;
+	my_unique_ptr<int, void(*)(int*)> pMyUniqueArr(new int[ARR_LENGTH], [](int* arr)
 		{
 			delete[] arr;
 		});
@@ -33,11 +33,22 @@ void testUnique()
 	*pMyUnique2 = 24;
 	cout << *pMyUnique2 << endl;
 
-	pMyUnique = move(pMyUnique2);
-
 	my_unique_ptr<Pair> pPair(new Pair(4, 6));
 	cout << "x: " << pPair->x << "; y = " << pPair->y << endl;
 
+	cout << "Unique array: " << endl;
+	for (int i = 0; i < ARR_LENGTH; i++)
+	{
+		pMyUniqueArr[i] = i;
+		cout << pMyUniqueArr[i] << " ";
+	}
+	cout << endl;
+	
+	cout << "Before swapping" << endl;
+	cout << "1: " << *pMyUnique << ", 2: " << *pMyUnique2 << endl;
+	pMyUnique.swap(pMyUnique2);
+	cout << "After swapping" << endl;
+	cout << "1: " << *pMyUnique << ", 2: " << *pMyUnique2 << endl;
 }
 
 void testShared()
