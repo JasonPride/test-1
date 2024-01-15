@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include "my_unique_ptr.h"
 #include "my_shared_ptr.h"
+#include "TabWidget.h"
 
 using namespace std;
 
@@ -67,6 +68,7 @@ void testUnique()
 void testShared()
 {
 	cout << "TESTING SHARED" << endl;
+
 	my_shared_ptr<int> pShared1(new int(10));
 	my_shared_ptr<int> pShared2(pShared1);
 	my_shared_ptr<int> pShared3(new int(20));
@@ -110,7 +112,6 @@ void testWeak()
 	sharedInt = sharedInt2;
 	cout << "Expired: " << weakInt.expired() << endl;
 
-	//sharedWeak.reset();
 	weakInt.reset();
 	sharedWeak.reset();
 
@@ -131,7 +132,6 @@ void testWeak()
 	mySharedInt = mySharedInt2;
 	cout << "Expired: " << myWeakInt.isExpired() << endl;
 
-	//sharedWeak.reset();
 	myWeakInt.reset();
 	mySharedWeak.reset();
 
@@ -144,13 +144,29 @@ void testWeak()
 	cout << "END WEAK" << endl;
 }
 
+void testWidget()
+{
+	cout << "TESTING WIDGET" << endl;
+
+	my_shared_ptr<Widget> parent(new TabWidget());
+	my_shared_ptr<Widget> testingWidget(new TabWidget(parent));
+
+	//my_shared_ptr<Widget> parent1 = parent->getParent();
+	//my_shared_ptr<Widget> parent2 = testingWidget->getParent();
+
+	cout << "END WIDGET" << endl;
+}
+
 int main()
 {
-	testUnique();
+	/*testUnique();
 	cout << endl;
-	cout << endl;
+	cout << endl;*/
 	testShared();
 	cout << endl;
 	cout << endl;
-	testWeak();
+	/*testWeak();
+	cout << endl;
+	cout << endl;*/
+	//testWidget();
 }

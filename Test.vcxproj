@@ -127,7 +127,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="TabWidget.cpp" />
     <ClCompile Include="Test.cpp" />
+    <ClCompile Include="Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Test.txt" />
@@ -135,6 +137,8 @@
   <ItemGroup>
     <ClInclude Include="my_shared_ptr.h" />
     <ClInclude Include="my_unique_ptr.h" />
+    <ClInclude Include="TabWidget.h" />
+    <ClInclude Include="Widget.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

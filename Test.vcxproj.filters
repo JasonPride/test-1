@@ -13,21 +13,42 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Файлы заголовков\my_smart_ptrs">
+      <UniqueIdentifier>{87574198-a664-41d2-9a25-8f3d7c14ffba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\Widgets">
+      <UniqueIdentifier>{aeb3a86a-8095-44c2-854d-cbc6ef8a2baa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\Widgets">
+      <UniqueIdentifier>{98751cc5-c8ab-4bf2-b63f-57c7c1747db6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Test.cpp">
       <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget.cpp">
+      <Filter>Исходные файлы\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="TabWidget.cpp">
+      <Filter>Исходные файлы\Widgets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Test.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="my_unique_ptr.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="my_shared_ptr.h">
-      <Filter>Файлы заголовков</Filter>
+      <Filter>Файлы заголовков\my_smart_ptrs</Filter>
+    </ClInclude>
+    <ClInclude Include="my_unique_ptr.h">
+      <Filter>Файлы заголовков\my_smart_ptrs</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget.h">
+      <Filter>Файлы заголовков\Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="TabWidget.h">
+      <Filter>Файлы заголовков\Widgets</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
