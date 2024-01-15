@@ -8,15 +8,26 @@ struct Pair
 {
 	int x;
 	int y;
+	int* pX;
+	int* pY;
 	Pair()
 	{
 		x = 0;
 		y = 0;
+		pX = pY = nullptr;
 	}
 	Pair(int x, int y)
 	{
 		this->x = x;
 		this->y = y;
+		pX = pY = nullptr;
+	}
+	Pair(const Pair& other)
+	{
+		x = other.x;
+		y = other.y;
+		pX = other.pX;
+		pY = other.pY;
 	}
 };
 
@@ -56,8 +67,6 @@ void testUnique()
 void testShared()
 {
 	cout << "TESTING SHARED" << endl;
-	shared_ptr<int> p_shared = make_shared<int>(123);
-	
 	my_shared_ptr<int> pShared1(new int(10));
 	my_shared_ptr<int> pShared2(pShared1);
 	my_shared_ptr<int> pShared3(new int(20));
@@ -89,10 +98,59 @@ void testShared()
 	cout << "END SHARED" << endl;
 }
 
+void testWeak()
+{
+	cout << "TESTING WEAK" << endl;
+	shared_ptr<int> sharedInt = make_shared<int>(32);
+	shared_ptr<int> sharedInt2 = make_shared<int>(30);
+	weak_ptr<int> weakInt(sharedInt);
+	cout << "Expired: " << weakInt.expired() << endl;
+	shared_ptr<int> sharedWeak = weakInt.lock();
+	shared_ptr<int> sharedWeak2 = weakInt.lock();
+	sharedInt = sharedInt2;
+	cout << "Expired: " << weakInt.expired() << endl;
+
+	//sharedWeak.reset();
+	weakInt.reset();
+	sharedWeak.reset();
+
+	weak_ptr<int> weakInt2(sharedWeak2);
+	cout << "Expired: " << weakInt2.expired() << endl;
+	sharedWeak2.reset();
+	cout << "Expired: " << weakInt2.expired() << endl;
+	cout << "Expired: " << weakInt.expired() << endl;
+
+	cout << "-------------------------------------------" << endl;
+
+	my_shared_ptr<int> mySharedInt(new int(32));
+	my_shared_ptr<int> mySharedInt2(new int(30));
+	my_weak_ptr<int> myWeakInt(mySharedInt);
+	cout << "Expired: " << myWeakInt.isExpired() << endl;
+	my_shared_ptr<int> mySharedWeak = myWeakInt.lock();
+	my_shared_ptr<int> mySharedWeak2 = myWeakInt.lock();
+	mySharedInt = mySharedInt2;
+	cout << "Expired: " << myWeakInt.isExpired() << endl;
+
+	//sharedWeak.reset();
+	myWeakInt.reset();
+	mySharedWeak.reset();
+
+	my_weak_ptr<int> myWeakInt2(mySharedWeak2);
+	cout << "Expired: " << myWeakInt2.isExpired() << endl;
+	mySharedWeak2.reset();
+	cout << "Expired: " << myWeakInt2.isExpired() << endl;
+	cout << "Expired: " << myWeakInt.isExpired() << endl;
+
+	cout << "END WEAK" << endl;
+}
+
 int main()
 {
 	testUnique();
 	cout << endl;
+	cout << endl;
 	testShared();
 	cout << endl;
+	cout << endl;
+	testWeak();
 }
