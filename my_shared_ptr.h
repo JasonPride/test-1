@@ -10,6 +10,12 @@ template<class T>
 class my_weak_ptr
 {
 public:
+	my_weak_ptr()
+	{
+		_sharedPtr = nullptr;
+		_count = nullptr;
+		_weakCountShared = nullptr;
+	}
 	my_weak_ptr(const my_weak_ptr<T>& ptr)
 	{
 		_sharedPtr = ptr._sharedPtr;
@@ -33,6 +39,10 @@ public:
 
 	~my_weak_ptr()
 	{
+		if (!_weakCountShared || !_count)
+		{
+			return;
+		}
 		descruct();
 	}
 
@@ -59,6 +69,47 @@ public:
 		_sharedPtr = nullptr;
 	}
 
+	long use_count() const
+	{
+		return (_count) ? *_count : 0;
+	}
+
+	my_weak_ptr<T>& operator=(my_weak_ptr<T>& otherPtr)
+	{
+		if (this == &otherPtr)
+		{
+			return *this;
+		}
+		_sharedPtr = otherPtr._sharedPtr;
+		if (_weakCountShared && _count)
+		{
+			descruct();
+		}
+		_count = otherPtr._count;
+		_weakCountShared = otherPtr._weakCountShared;
+		(*_weakCountShared)++;
+		return *this;
+	}
+
+	my_weak_ptr<T>& operator=(my_weak_ptr<T>&& otherPtr) noexcept
+	{
+		if (this == &otherPtr)
+		{
+			return *this;
+		}
+		_sharedPtr = otherPtr._sharedPtr;
+		otherPtr._sharedPtr = nullptr;
+		if (_weakCountShared && _count)
+		{
+			descruct();
+		}
+		_count = otherPtr._count;
+		otherPtr._count = nullptr;
+		_weakCountShared = otherPtr._weakCountShared;
+		otherPtr._weakCountShared = nullptr;
+		return *this;
+	}
+
 
 private:
 	my_shared_ptr<T>* _sharedPtr;
@@ -67,10 +118,6 @@ private:
 
 	void descruct()
 	{
-		if (_weakCountShared == nullptr)
-		{
-			return;
-		}
 		(*_weakCountShared)--;
 		if (*_weakCountShared == 0 && *_count == 0)
 		{
@@ -135,7 +182,7 @@ public:
 		}
 	}
 
-	my_shared_ptr<T> operator=(my_shared_ptr<T>& otherPtr)
+	my_shared_ptr<T>& operator=(my_shared_ptr<T>& otherPtr)
 	{
 		if (this == &otherPtr)
 		{
@@ -156,6 +203,27 @@ public:
 		_count = otherPtr._count;
 		_weakCount = otherPtr._weakCount;
 		(*_count)++;
+		return *this;
+	}
+
+	my_shared_ptr<T>& operator=(my_shared_ptr<T>&& otherPtr) noexcept
+	{
+		if (this == &otherPtr)
+		{
+			return *this;
+		}
+		if (_count)
+		{
+			if (*_count == 1)
+			{
+				destruct();
+			}
+			else
+			{
+				(*_count)--;
+			}
+		}
+
 		return *this;
 	}
 	
