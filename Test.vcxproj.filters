@@ -50,5 +50,8 @@
     <ClInclude Include="TabWidget.h">
       <Filter>Файлы заголовков\Widgets</Filter>
     </ClInclude>
+    <ClInclude Include="Debug.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

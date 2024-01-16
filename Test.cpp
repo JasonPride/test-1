@@ -1,10 +1,30 @@
-﻿#include <iostream>
+﻿#define DEBUG
+
+#include <iostream>
 #include "my_unique_ptr.h"
 #include "my_shared_ptr.h"
 #include "TabWidget.h"
 
 using namespace std;
 using namespace smart_ptrs;
+
+#ifdef DEBUG
+bool test()
+{
+	bool allObjDestroyed = DEBUG_OBJ_CONSTRUCTOR == DEBUG_OBJ_DESTRUCTOR;
+	bool allStrongRefsDestroyed = DEBUG_STRONG_REF_COUNT_CONSTRUCTOR == DEBUG_STRONG_REF_COUNT_DESTRUCTOR;
+	bool allWeakRefsDestroyed = DEBUG_WEAK_REF_COUNT_CONSTRUCTOR == DEBUG_WEAK_REF_COUNT_DESTRUCTOR;
+	cout << "All objects destroyed: " << allObjDestroyed << endl;
+	cout << "All strong refs object destroyed: " << allStrongRefsDestroyed << endl;
+	cout << "All weak refs object destroyed: " << allWeakRefsDestroyed << endl;
+
+	DEBUG_OBJ_CONSTRUCTOR = DEBUG_OBJ_DESTRUCTOR 
+		= DEBUG_STRONG_REF_COUNT_CONSTRUCTOR = DEBUG_STRONG_REF_COUNT_DESTRUCTOR 
+		= DEBUG_WEAK_REF_COUNT_CONSTRUCTOR = DEBUG_WEAK_REF_COUNT_DESTRUCTOR = 0;
+	return allObjDestroyed && allStrongRefsDestroyed && allWeakRefsDestroyed;
+}
+#endif // DEBUG
+
 
 struct Pair
 {
@@ -162,14 +182,26 @@ void testWidget()
 
 int main()
 {
-	/*testUnique();
+	testUnique();
 	cout << endl;
-	cout << endl;*/
+	cout << endl;
+
 	testShared();
+#ifdef DEBUG
+	test();
+#endif // DEBUG
 	cout << endl;
 	cout << endl;
-	/*testWeak();
+
+	testWeak();
+#ifdef DEBUG
+	test();
+#endif // DEBUG
 	cout << endl;
-	cout << endl;*/
-	//testWidget();
+	cout << endl;
+
+	testWidget();
+#ifdef DEBUG
+	test();
+#endif // DEBUG
 }

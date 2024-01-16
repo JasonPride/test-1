@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-
+#include "Debug.h"
 namespace smart_ptrs
 {
 	template<class T, class Deleter = std::default_delete<T>>
@@ -122,9 +122,12 @@ namespace smart_ptrs
 			(*_weakCountShared)--;
 			if (*_weakCountShared == 0 && *_count == 0)
 			{
-				std::cout << "Weak destructor" << std::endl;
 				delete _weakCountShared;
 				delete _count;
+#ifdef DEBUG
+				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
+				DEBUG_WEAK_REF_COUNT_DESTRUCTOR++;
+#endif // DEBUG
 			}
 		}
 	};
@@ -148,6 +151,12 @@ namespace smart_ptrs
 			_ptr = ptr;
 			_count = new long(1);
 			_weakCount = new long(0);
+#ifdef DEBUG
+			DEBUG_OBJ_CONSTRUCTOR++;
+			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
+			DEBUG_WEAK_REF_COUNT_CONSTRUCTOR++;
+#endif // DEBUG
+
 		}
 
 		my_shared_ptr(T* ptr, Deleter deleter)
@@ -156,6 +165,11 @@ namespace smart_ptrs
 			_count = new long(1);
 			_weakCount = new long(0);
 			_deleter = deleter;
+#ifdef DEBUG
+			DEBUG_OBJ_CONSTRUCTOR++;
+			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
+			DEBUG_WEAK_REF_COUNT_CONSTRUCTOR++;
+#endif // DEBUG
 		}
 
 		my_shared_ptr(const my_shared_ptr<T>& otherPtr)
@@ -279,15 +293,21 @@ namespace smart_ptrs
 
 		void destruct()
 		{
-			std::cout << "Destructor" << std::endl;
 			if (_weakCount == nullptr)
 			{
 				delete _count;
+#ifdef DEBUG
+				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
+#endif // DEBUG
 			}
 			else if (*_weakCount <= 0)
 			{
 				delete _count;
 				delete _weakCount;
+#ifdef DEBUG
+				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
+				DEBUG_WEAK_REF_COUNT_DESTRUCTOR++;
+#endif // DEBUG
 			}
 			else
 			{
@@ -296,6 +316,9 @@ namespace smart_ptrs
 			_count = nullptr;
 			_weakCount = nullptr;
 			_deleter(_ptr);
+#ifdef DEBUG
+			DEBUG_OBJ_DESTRUCTOR++;
+#endif // DEBUG
 		}
 	};
 

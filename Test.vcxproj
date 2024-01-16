@@ -135,6 +135,7 @@
     <Text Include="Test.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Debug.h" />
     <ClInclude Include="my_shared_ptr.h" />
     <ClInclude Include="my_unique_ptr.h" />
     <ClInclude Include="TabWidget.h" />
