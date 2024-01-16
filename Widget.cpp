@@ -18,3 +18,9 @@ my_shared_ptr<Widget> Widget::getParent()
 	}
 	return _parent.lock();
 }
+
+void Widget::addChildToParent(my_shared_ptr<Widget>& parent, my_shared_ptr<Widget>& child)
+{
+	child->_parent = my_weak_ptr<Widget>(parent);
+	parent->addChild(child);
+}

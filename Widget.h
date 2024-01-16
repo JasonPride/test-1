@@ -1,32 +1,43 @@
 #pragma once
 #include <vector>
 #include "my_shared_ptr.h"
+
+using namespace smart_ptrs;
 class Widget
 {
 public:
 	enum WidgetType
 	{
+		SimpleWidget,
 		TabWidget,
 		CalendarWidget
 	};
 
+	static void addChildToParent(my_shared_ptr<Widget>& parent, my_shared_ptr<Widget>& child);
+
 	Widget()
 	{
+		_parent.reset();
 	}
 
-	Widget(my_shared_ptr<Widget>& parent)
+	Widget(std::string name)
 	{
-		/*my_weak_ptr<Widget> temp(parent)*/
-		_parent = my_weak_ptr<Widget>(parent);
-		//parent->addChild(my_shared_ptr<Widget>(this));
+		_parent.reset();
+		_name = name;
 	}
 	int getChildrenCount();
 	my_shared_ptr<Widget> getParent();
+	std::string getName()
+	{
+		return _name;
+	}
 
-	virtual WidgetType getType() = 0;
+	virtual WidgetType getType() {
+		return SimpleWidget;
+	}
 private:
 	std::vector<my_shared_ptr<Widget>> _children;
+	std::string _name;
 	my_weak_ptr<Widget> _parent;
 	void addChild(my_shared_ptr<Widget>& child);
-	void addChild(Widget* child);
 };

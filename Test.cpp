@@ -4,6 +4,7 @@
 #include "TabWidget.h"
 
 using namespace std;
+using namespace smart_ptrs;
 
 struct Pair
 {
@@ -148,11 +149,13 @@ void testWidget()
 {
 	cout << "TESTING WIDGET" << endl;
 
-	my_shared_ptr<Widget> parent(new TabWidget());
-	my_shared_ptr<Widget> testingWidget(new TabWidget(parent));
+	my_shared_ptr<Widget> parent(new TabWidget("Parent"));
+	my_shared_ptr<Widget> testingWidget(new TabWidget("First child"));
 
-	//my_shared_ptr<Widget> parent1 = parent->getParent();
-	//my_shared_ptr<Widget> parent2 = testingWidget->getParent();
+	Widget::addChildToParent(parent, testingWidget);
+
+	my_shared_ptr<Widget> parent1 = parent->getParent();
+	my_shared_ptr<Widget> parent2 = testingWidget->getParent();
 
 	cout << "END WIDGET" << endl;
 }

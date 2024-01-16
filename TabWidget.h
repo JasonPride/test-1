@@ -5,7 +5,7 @@ class TabWidget : public Widget
 {
 public:
 	TabWidget() : Widget() {}
-	TabWidget(my_shared_ptr<Widget>& parent) : Widget(parent) {}
+	TabWidget(std::string name) : Widget(name) {}
 	virtual WidgetType getType();
 private:
 };
