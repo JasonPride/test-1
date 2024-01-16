@@ -27,9 +27,15 @@ public:
 	}
 	int getChildrenCount();
 	my_shared_ptr<Widget> getParent();
+
 	std::string getName()
 	{
 		return _name;
+	}
+
+	my_shared_ptr<Widget> getChild(int pos)
+	{
+		return _children[pos];
 	}
 
 	virtual WidgetType getType() {

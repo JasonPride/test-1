@@ -4,6 +4,7 @@
 #include "my_unique_ptr.h"
 #include "my_shared_ptr.h"
 #include "TabWidget.h"
+#include "CalendarWidget.h"
 
 using namespace std;
 using namespace smart_ptrs;
@@ -165,17 +166,49 @@ void testWeak()
 	cout << "END WEAK" << endl;
 }
 
+void printSpaces(int spaceCount)
+{
+	for (int i = 0; i < spaceCount; i++)
+	{
+		cout << " ";
+	}
+}
+
+void showWidgetDepth(my_shared_ptr<Widget> widget, int depth = 0)
+{
+	int spaceCount = depth * 4;
+	printSpaces(spaceCount);
+	cout << "Name: " << widget->getName() << ", Type: " << widget->getType() << endl;
+	printSpaces(spaceCount);
+	my_shared_ptr<Widget> parent = widget->getParent();
+	string parentName = parent.use_count() == 0 ? "N/A" : parent->getName();
+	int childrenCount = widget->getChildrenCount();
+	cout << "Parent name: " << parentName << ", Children count: " << childrenCount << endl;
+	cout << endl;
+	for (int i = 0; i < childrenCount; i++)
+	{
+		showWidgetDepth(widget->getChild(i), depth + 1);
+	}
+}
+
 void testWidget()
 {
 	cout << "TESTING WIDGET" << endl;
 
 	my_shared_ptr<Widget> parent(new TabWidget("Parent"));
-	my_shared_ptr<Widget> testingWidget(new TabWidget("First child"));
+	my_shared_ptr<Widget> tabWidget1(new TabWidget("tabWidget1"));
+	my_shared_ptr<Widget> calWidget1(new CalendarWidget("calWidget1"));
+	my_shared_ptr<Widget> calWidget2(new CalendarWidget("calWidget2"));
 
-	Widget::addChildToParent(parent, testingWidget);
+	Widget::addChildToParent(parent, tabWidget1);
 
 	my_shared_ptr<Widget> parent1 = parent->getParent();
-	my_shared_ptr<Widget> parent2 = testingWidget->getParent();
+	my_shared_ptr<Widget> parent2 = tabWidget1->getParent();
+
+	Widget::addChildToParent(parent, calWidget1);
+	Widget::addChildToParent(calWidget1, calWidget2);
+
+	showWidgetDepth(parent);
 
 	cout << "END WIDGET" << endl;
 }
