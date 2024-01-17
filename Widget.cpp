@@ -21,6 +21,10 @@ my_shared_ptr<Widget> Widget::getParent()
 
 void Widget::addChildToParent(my_shared_ptr<Widget>& parent, my_shared_ptr<Widget>& child)
 {
+	if (child->getParent().use_count() != 0)
+	{
+		throw std::invalid_argument("Child already has a parent");
+	}
 	child->_parent = my_weak_ptr<Widget>(parent);
 	parent->addChild(child);
 }
