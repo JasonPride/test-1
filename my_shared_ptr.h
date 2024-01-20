@@ -311,14 +311,16 @@ namespace smart_ptrs
 #endif // DEBUG
 		}
 
+		static void defaultDeleter(T* ptr)
+		{
+			delete ptr;
+		}
+
 		struct ControlBlock
 		{
 			ControlBlock() 
 			{
-				deleter = [](T* ptr)
-				{
-					delete ptr;
-				};
+				deleter = defaultDeleter;
 			}
 			ControlBlock(Deleter aDeleter)
 			{
