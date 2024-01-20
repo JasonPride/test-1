@@ -3,9 +3,8 @@
 #include "Debug.h"
 namespace smart_ptrs
 {
-	template<class T, class Deleter = std::default_delete<T>>
+	template<class T>
 	class my_shared_ptr;
-
 
 	template<class T>
 	class my_weak_ptr
@@ -14,33 +13,30 @@ namespace smart_ptrs
 		my_weak_ptr()
 		{
 			_sharedPtr = nullptr;
-			_count = nullptr;
-			_weakCountShared = nullptr;
+			_pControlBlock = nullptr;
 		}
 		my_weak_ptr(const my_weak_ptr<T>& ptr)
 		{
 			_sharedPtr = ptr._sharedPtr;
-			_count = ptr._count;
-			_weakCountShared = ptr._weakCountShared;
-			if (_weakCountShared)
+			_pControlBlock = ptr._pControlBlock;
+			if (_pControlBlock)
 			{
-				(*_weakCountShared)++;
+				_pControlBlock->weakCount++;
 			}
 		}
 		my_weak_ptr(my_shared_ptr<T>& ptr)
 		{
 			_sharedPtr = &ptr;
-			_count = ptr._count;
-			_weakCountShared = ptr._weakCount;
-			if (_weakCountShared)
+			_pControlBlock = ptr._pControlBlock;
+			if (_pControlBlock)
 			{
-				(*_weakCountShared)++;
+				_pControlBlock->weakCount++;
 			}
 		}
 
 		~my_weak_ptr()
 		{
-			if (!_weakCountShared || !_count)
+			if (!_pControlBlock)
 			{
 				return;
 			}
@@ -49,7 +45,7 @@ namespace smart_ptrs
 
 		bool isExpired() const
 		{
-			return !_count || *_count == 0;
+			return !_pControlBlock || _pControlBlock->refCount == 0;
 		}
 
 		my_shared_ptr<T> lock()
@@ -60,19 +56,18 @@ namespace smart_ptrs
 
 		void reset()
 		{
-			if (!_weakCountShared || !_count)
+			if (!_pControlBlock)
 			{
 				return;
 			}
-			descruct();
-			_count = nullptr;
-			_weakCountShared = nullptr;
+			descruct(); 
+			_pControlBlock = nullptr;
 			_sharedPtr = nullptr;
 		}
 
 		long use_count() const
 		{
-			return (_count) ? *_count : 0;
+			return _pControlBlock ? _pControlBlock->refCount : 0;
 		}
 
 		my_weak_ptr<T>& operator=(my_weak_ptr<T>& otherPtr)
@@ -82,13 +77,12 @@ namespace smart_ptrs
 				return *this;
 			}
 			_sharedPtr = otherPtr._sharedPtr;
-			if (_weakCountShared && _count)
+			if (_pControlBlock)
 			{
 				descruct();
 			}
-			_count = otherPtr._count;
-			_weakCountShared = otherPtr._weakCountShared;
-			(*_weakCountShared)++;
+			_pControlBlock = otherPtr._pControlBlock;
+			_pControlBlock->refCount++;
 			return *this;
 		}
 
@@ -100,30 +94,26 @@ namespace smart_ptrs
 			}
 			_sharedPtr = otherPtr._sharedPtr;
 			otherPtr._sharedPtr = nullptr;
-			if (_weakCountShared && _count)
+			if (_pControlBlock)
 			{
 				descruct();
 			}
-			_count = otherPtr._count;
-			otherPtr._count = nullptr;
-			_weakCountShared = otherPtr._weakCountShared;
-			otherPtr._weakCountShared = nullptr;
+			_pControlBlock = otherPtr._pControlBlock;
+			otherPtr._pControlBlock = nullptr;
 			return *this;
 		}
 
 
 	private:
 		my_shared_ptr<T>* _sharedPtr;
-		long* _count;
-		long* _weakCountShared;
+		struct my_shared_ptr<T>::ControlBlock* _pControlBlock;
 
 		void descruct()
 		{
-			(*_weakCountShared)--;
-			if (*_weakCountShared == 0 && *_count == 0)
+			(_pControlBlock->weakCount)--;
+			if (_pControlBlock->weakCount == 0 && _pControlBlock->refCount == 0)
 			{
-				delete _weakCountShared;
-				delete _count;
+				delete _pControlBlock;
 #ifdef DEBUG
 				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
 				DEBUG_WEAK_REF_COUNT_DESTRUCTOR++;
@@ -133,24 +123,23 @@ namespace smart_ptrs
 	};
 
 
-	template<class T, class Deleter>
+	template<class T>
 	class my_shared_ptr
 	{
 		friend class my_weak_ptr<T>;
 	public:
+		typedef void(*Deleter)(T*);
 
 		my_shared_ptr()
 		{
 			_ptr = nullptr;
-			_count = nullptr;
-			_weakCount = nullptr;
+			_pControlBlock = nullptr;
 		}
 
 		my_shared_ptr(T* ptr)
 		{
 			_ptr = ptr;
-			_count = new long(1);
-			_weakCount = new long(0);
+			_pControlBlock = new ControlBlock;
 #ifdef DEBUG
 			DEBUG_OBJ_CONSTRUCTOR++;
 			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
@@ -162,9 +151,7 @@ namespace smart_ptrs
 		my_shared_ptr(T* ptr, Deleter deleter)
 		{
 			_ptr = ptr;
-			_count = new long(1);
-			_weakCount = new long(0);
-			_deleter = deleter;
+			_pControlBlock = new ControlBlock(deleter);
 #ifdef DEBUG
 			DEBUG_OBJ_CONSTRUCTOR++;
 			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
@@ -174,26 +161,32 @@ namespace smart_ptrs
 
 		my_shared_ptr(const my_shared_ptr<T>& otherPtr)
 		{
-			_count = otherPtr._count;
-			_weakCount = otherPtr._weakCount;
+			_ptr = otherPtr._ptr; 
+			_pControlBlock = otherPtr._pControlBlock;
+			_pControlBlock->refCount++;
+		}
+
+		my_shared_ptr(my_shared_ptr<T>&& otherPtr) noexcept
+		{
+			_pControlBlock = otherPtr._pControlBlock;
+			otherPtr._pControlBlock = nullptr;
 			_ptr = otherPtr._ptr;
-			_deleter = otherPtr._deleter;
-			(*_count)++;
+			otherPtr._ptr = nullptr;
 		}
 
 		~my_shared_ptr()
 		{
-			if (!_count)
+			if (!_pControlBlock)
 			{
 				return;
 			}
-			if (*_count == 1)
+			if (_pControlBlock->refCount == 1)
 			{
 				destruct();
 			}
 			else
 			{
-				(*_count)--;
+				_pControlBlock->refCount--;
 			}
 		}
 
@@ -203,21 +196,20 @@ namespace smart_ptrs
 			{
 				return *this;
 			}
-			if (_count)
+			if (_pControlBlock)
 			{
-				if (*_count == 1)
+				if (_pControlBlock->refCount == 1)
 				{
 					destruct();
 				}
 				else
 				{
-					(*_count)--;
+					_pControlBlock->refCount--;
 				}
 			}
-			_ptr = otherPtr._ptr;
-			_count = otherPtr._count;
-			_weakCount = otherPtr._weakCount;
-			(*_count)++;
+			_ptr = otherPtr._ptr; 
+			_pControlBlock = otherPtr._pControlBlock;
+			_pControlBlock->refCount++;
 			return *this;
 		}
 
@@ -227,17 +219,21 @@ namespace smart_ptrs
 			{
 				return *this;
 			}
-			if (_count)
+			if (_pControlBlock)
 			{
-				if (*_count == 1)
+				if (_pControlBlock->refCount == 1)
 				{
 					destruct();
 				}
 				else
 				{
-					(*_count)--;
+					_pControlBlock->refCount--;
 				}
 			}
+			_ptr = otherPtr._ptr;
+			otherPtr._ptr = nullptr;
+			_pControlBlock = otherPtr._pControlBlock;
+			otherPtr._pControlBlock = nullptr;
 
 			return *this;
 		}
@@ -259,26 +255,25 @@ namespace smart_ptrs
 
 		long use_count() const
 		{
-			return (_count) ? *_count : 0;
+			return (_pControlBlock) ? _pControlBlock->refCount : 0L;
 		}
 
 		bool unique() const
 		{
-			(_count) && (*_count == 1);
+			(_pControlBlock) && (_pControlBlock->refCount == 1);
 		}
 		void reset()
 		{
-			if (*_count == 1)
+			if (_pControlBlock->refCount == 1)
 			{
 				destruct();
 			}
 			else
 			{
-				(*_count)--;
+				_pControlBlock->refCount--;
 			}
-			_count = nullptr;
+			_pControlBlock = nullptr;
 			_ptr = nullptr;
-			_weakCount = nullptr;
 		}
 		void swap(my_shared_ptr ptr)
 		{
@@ -286,24 +281,21 @@ namespace smart_ptrs
 		}
 
 	private:
-		long* _count;
-		long* _weakCount;
-		T* _ptr;
-		Deleter _deleter;
+		struct ControlBlock;
+
+		T* _ptr = nullptr;
+		ControlBlock* _pControlBlock = nullptr;
 
 		void destruct()
 		{
-			if (_weakCount == nullptr)
+			if (!_pControlBlock)
 			{
-				delete _count;
-#ifdef DEBUG
-				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
-#endif // DEBUG
+				return;
 			}
-			else if (*_weakCount <= 0)
+			_pControlBlock->deleter(_ptr);
+			if (_pControlBlock->weakCount <= 0)
 			{
-				delete _count;
-				delete _weakCount;
+				delete _pControlBlock;
 #ifdef DEBUG
 				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
 				DEBUG_WEAK_REF_COUNT_DESTRUCTOR++;
@@ -311,15 +303,31 @@ namespace smart_ptrs
 			}
 			else
 			{
-				(*_count)--;
+				_pControlBlock->refCount--;
 			}
-			_count = nullptr;
-			_weakCount = nullptr;
-			_deleter(_ptr);
+			_pControlBlock = nullptr;
 #ifdef DEBUG
 			DEBUG_OBJ_DESTRUCTOR++;
 #endif // DEBUG
 		}
+
+		struct ControlBlock
+		{
+			ControlBlock() 
+			{
+				deleter = [](T* ptr)
+				{
+					delete ptr;
+				};
+			}
+			ControlBlock(Deleter aDeleter)
+			{
+				deleter = aDeleter;
+			}
+			unsigned long refCount = 1L;
+			unsigned long weakCount = 0L;
+			Deleter deleter;
+		};
 	};
 
 }

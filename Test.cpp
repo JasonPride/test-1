@@ -95,7 +95,7 @@ void testShared()
 	my_shared_ptr<int> pShared2(pShared1);
 	my_shared_ptr<int> pShared3(new int(20));
 	const int ARR_LENGTH = 15;
-	my_shared_ptr<int, void(*)(int*)> pSharedArr(new int[ARR_LENGTH], [](int* ptr)
+	my_shared_ptr<int> pSharedArr(new int[ARR_LENGTH], [](int* ptr)
 		{
 			delete[]ptr;
 		});
