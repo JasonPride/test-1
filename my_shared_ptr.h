@@ -21,7 +21,7 @@ namespace smart_ptrs
 			_pControlBlock = ptr._pControlBlock;
 			if (_pControlBlock)
 			{
-				_pControlBlock->weakCount++;
+				_pControlBlock->weakCount.fetch_add(1);
 			}
 		}
 		my_weak_ptr(my_shared_ptr<T>& ptr)
@@ -30,7 +30,7 @@ namespace smart_ptrs
 			_pControlBlock = ptr._pControlBlock;
 			if (_pControlBlock)
 			{
-				_pControlBlock->weakCount++;
+				_pControlBlock->weakCount.fetch_add(1);
 			}
 		}
 
@@ -45,7 +45,7 @@ namespace smart_ptrs
 
 		bool isExpired() const
 		{
-			return !_pControlBlock || _pControlBlock->refCount == 0;
+			return !_pControlBlock || _pControlBlock->refCount.load() == 0;
 		}
 
 		my_shared_ptr<T> lock()
@@ -67,7 +67,7 @@ namespace smart_ptrs
 
 		long use_count() const
 		{
-			return _pControlBlock ? _pControlBlock->refCount : 0;
+			return _pControlBlock ? _pControlBlock->refCount.load() : 0;
 		}
 
 		my_weak_ptr<T>& operator=(my_weak_ptr<T>& otherPtr)
@@ -82,7 +82,7 @@ namespace smart_ptrs
 				descruct();
 			}
 			_pControlBlock = otherPtr._pControlBlock;
-			_pControlBlock->refCount++;
+			_pControlBlock->refCount.fetch_add(1);
 			return *this;
 		}
 
@@ -110,8 +110,8 @@ namespace smart_ptrs
 
 		void descruct()
 		{
-			(_pControlBlock->weakCount)--;
-			if (_pControlBlock->weakCount == 0 && _pControlBlock->refCount == 0)
+			_pControlBlock->weakCount.fetch_sub(1);
+			if (_pControlBlock->weakCount.load() == 0 && _pControlBlock->refCount.load() == 0)
 			{
 				delete _pControlBlock;
 #ifdef DEBUG
@@ -163,7 +163,7 @@ namespace smart_ptrs
 		{
 			_ptr = otherPtr._ptr; 
 			_pControlBlock = otherPtr._pControlBlock;
-			_pControlBlock->refCount++;
+			_pControlBlock->refCount.fetch_add(1);
 		}
 
 		my_shared_ptr(my_shared_ptr<T>&& otherPtr) noexcept
@@ -180,13 +180,13 @@ namespace smart_ptrs
 			{
 				return;
 			}
-			if (_pControlBlock->refCount == 1)
+			if (_pControlBlock->refCount.load() == 1)
 			{
 				destruct();
 			}
 			else
 			{
-				_pControlBlock->refCount--;
+				_pControlBlock->refCount.fetch_sub(1);
 			}
 		}
 
@@ -198,18 +198,18 @@ namespace smart_ptrs
 			}
 			if (_pControlBlock)
 			{
-				if (_pControlBlock->refCount == 1)
+				if (_pControlBlock->refCount.load() == 1)
 				{
 					destruct();
 				}
 				else
 				{
-					_pControlBlock->refCount--;
+					_pControlBlock->refCount.fetch_sub(1);
 				}
 			}
 			_ptr = otherPtr._ptr; 
 			_pControlBlock = otherPtr._pControlBlock;
-			_pControlBlock->refCount++;
+			_pControlBlock->refCount.fetch_add(1);
 			return *this;
 		}
 
@@ -221,13 +221,13 @@ namespace smart_ptrs
 			}
 			if (_pControlBlock)
 			{
-				if (_pControlBlock->refCount == 1)
+				if (_pControlBlock->refCount.load() == 1)
 				{
 					destruct();
 				}
 				else
 				{
-					_pControlBlock->refCount--;
+					_pControlBlock->refCount.fetch_sub(1);
 				}
 			}
 			_ptr = otherPtr._ptr;
@@ -255,22 +255,22 @@ namespace smart_ptrs
 
 		long use_count() const
 		{
-			return (_pControlBlock) ? _pControlBlock->refCount : 0L;
+			return (_pControlBlock) ? _pControlBlock->refCount.load() : 0L;
 		}
 
 		bool unique() const
 		{
-			(_pControlBlock) && (_pControlBlock->refCount == 1);
+			(_pControlBlock) && (_pControlBlock->refCount.load() == 1);
 		}
 		void reset()
 		{
-			if (_pControlBlock->refCount == 1)
+			if (_pControlBlock->refCount.load() == 1)
 			{
 				destruct();
 			}
 			else
 			{
-				_pControlBlock->refCount--;
+				_pControlBlock->refCount.fetch_sub(1);
 			}
 			_pControlBlock = nullptr;
 			_ptr = nullptr;
@@ -293,7 +293,7 @@ namespace smart_ptrs
 				return;
 			}
 			_pControlBlock->deleter(_ptr);
-			if (_pControlBlock->weakCount <= 0)
+			if (_pControlBlock->weakCount.load() <= 0)
 			{
 				delete _pControlBlock;
 #ifdef DEBUG
@@ -303,7 +303,7 @@ namespace smart_ptrs
 			}
 			else
 			{
-				_pControlBlock->refCount--;
+				_pControlBlock->refCount.fetch_sub(1);
 			}
 			_pControlBlock = nullptr;
 #ifdef DEBUG
@@ -326,8 +326,8 @@ namespace smart_ptrs
 			{
 				deleter = aDeleter;
 			}
-			unsigned long refCount = 1L;
-			unsigned long weakCount = 0L;
+			std::atomic<unsigned long> refCount = { 1L };
+			std::atomic<unsigned long> weakCount = { 0L };
 			Deleter deleter;
 		};
 	};
