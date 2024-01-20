@@ -119,6 +119,23 @@ void testShared()
 		cout << pSharedArr[i] << " ";
 	}
 	cout << endl;
+
+	auto customDeleter1 = [](int* ptr)
+	{
+		cout << "Custom deleter 1: " << *ptr << endl;
+		delete ptr;
+	};
+	
+	auto customDeleter2 = [](int* ptr)
+	{
+		cout << "Custom deleter 2: " << *ptr << endl;
+		delete ptr;
+	};
+
+	my_shared_ptr<int> shared1(new int(10), customDeleter1);
+	my_shared_ptr<int> shared2(new int(11), customDeleter2);
+
+	shared1 = shared2;
 	cout << "END SHARED" << endl;
 }
 
