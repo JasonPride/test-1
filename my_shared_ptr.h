@@ -139,7 +139,7 @@ namespace smart_ptrs
 		my_shared_ptr(T* ptr)
 		{
 			_ptr = ptr;
-			_pControlBlock = new ControlBlock;
+			_pControlBlock = new SeparateControlBlock(ptr);
 #ifdef DEBUG
 			DEBUG_OBJ_CONSTRUCTOR++;
 			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
@@ -151,7 +151,7 @@ namespace smart_ptrs
 		my_shared_ptr(T* ptr, Deleter deleter)
 		{
 			_ptr = ptr;
-			_pControlBlock = new ControlBlock(deleter);
+			_pControlBlock = new SeparateControlBlock(ptr, deleter);
 #ifdef DEBUG
 			DEBUG_OBJ_CONSTRUCTOR++;
 			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
@@ -292,7 +292,7 @@ namespace smart_ptrs
 			{
 				return;
 			}
-			_pControlBlock->deleter(_ptr);
+			_pControlBlock->dispose();
 			if (_pControlBlock->weakCount.load() <= 0)
 			{
 				delete _pControlBlock;
@@ -318,17 +318,46 @@ namespace smart_ptrs
 
 		struct ControlBlock
 		{
-			ControlBlock() 
-			{
-				deleter = defaultDeleter;
-			}
-			ControlBlock(Deleter aDeleter)
-			{
-				deleter = aDeleter;
-			}
+			virtual void dispose() = 0;
 			std::atomic<unsigned long> refCount = { 1L };
 			std::atomic<unsigned long> weakCount = { 0L };
+		};
+
+		struct SeparateControlBlock : ControlBlock
+		{
+			SeparateControlBlock(T* ptr) : ControlBlock()
+			{
+				this->ptr = ptr;
+				deleter = defaultDeleter;
+			}
+
+			SeparateControlBlock(T* ptr, Deleter deleter) : ControlBlock()
+			{
+				this->ptr = ptr;
+				this->deleter = deleter;
+			}
+
+			virtual void dispose() noexcept override
+			{
+				deleter(ptr);
+			}
 			Deleter deleter;
+			T* ptr;
+		};
+
+		struct CombinedControlBlock : ControlBlock // for make_shared funciton
+		{
+			virtual void dispose() noexcept override
+			{
+				ptr()->~T();
+			}
+
+			T* ptr() 
+			{
+				return reinterpret_cast<T*>(buffer);
+			}
+
+			alignas(T) char buffer[sizeof(T)];
 		};
 	};
 
