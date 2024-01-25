@@ -1,10 +1,15 @@
 #pragma once
 #include <iostream>
 #include "Debug.h"
+
+using namespace std;
 namespace smart_ptrs
 {
 	template<class T>
 	class my_shared_ptr;
+
+	template <class _Ty0, class... _Types>
+	my_shared_ptr<_Ty0> make_my_shared(_Types&&... args);
 
 	template<class T>
 	class my_weak_ptr
@@ -115,8 +120,7 @@ namespace smart_ptrs
 			{
 				delete _pControlBlock;
 #ifdef DEBUG
-				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
-				DEBUG_WEAK_REF_COUNT_DESTRUCTOR++;
+				DEBUG_CONTROL_BLOCK_DESTRUCTOR++;
 #endif // DEBUG
 			}
 		}
@@ -126,7 +130,12 @@ namespace smart_ptrs
 	template<class T>
 	class my_shared_ptr
 	{
-		friend class my_weak_ptr<T>;
+		friend class my_weak_ptr<T>; 
+		
+		template<class T2> friend class my_shared_ptr;
+		template <class _Ty0, class... _Types>
+		friend my_shared_ptr<_Ty0> make_my_shared(_Types&&... _Args);
+
 	public:
 		typedef void(*Deleter)(T*);
 
@@ -142,8 +151,7 @@ namespace smart_ptrs
 			_pControlBlock = new SeparateControlBlock(ptr);
 #ifdef DEBUG
 			DEBUG_OBJ_CONSTRUCTOR++;
-			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
-			DEBUG_WEAK_REF_COUNT_CONSTRUCTOR++;
+			DEBUG_CONTROL_BLOCK_CONSTRUCTOR++;
 #endif // DEBUG
 
 		}
@@ -153,9 +161,8 @@ namespace smart_ptrs
 			_ptr = ptr;
 			_pControlBlock = new SeparateControlBlock(ptr, deleter);
 #ifdef DEBUG
-			DEBUG_OBJ_CONSTRUCTOR++;
-			DEBUG_STRONG_REF_COUNT_CONSTRUCTOR++;
-			DEBUG_WEAK_REF_COUNT_CONSTRUCTOR++;
+			DEBUG_OBJ_CONSTRUCTOR++; 
+			DEBUG_CONTROL_BLOCK_CONSTRUCTOR++;
 #endif // DEBUG
 		}
 
@@ -167,6 +174,23 @@ namespace smart_ptrs
 		}
 
 		my_shared_ptr(my_shared_ptr<T>&& otherPtr) noexcept
+		{
+			_pControlBlock = otherPtr._pControlBlock;
+			otherPtr._pControlBlock = nullptr;
+			_ptr = otherPtr._ptr;
+			otherPtr._ptr = nullptr;
+		}
+
+		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
+		my_shared_ptr(const my_shared_ptr<T2>& otherPtr)
+		{
+			_ptr = otherPtr._ptr; 
+			_pControlBlock = otherPtr._pControlBlock;
+			_pControlBlock->refCount.fetch_add(1);
+		}
+
+		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
+		my_shared_ptr(my_shared_ptr<T2>&& otherPtr) noexcept
 		{
 			_pControlBlock = otherPtr._pControlBlock;
 			otherPtr._pControlBlock = nullptr;
@@ -188,6 +212,20 @@ namespace smart_ptrs
 			{
 				_pControlBlock->refCount.fetch_sub(1);
 			}
+		}
+
+		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
+		my_shared_ptr<T>& operator=(const my_shared_ptr<T2>& otherPtr)
+		{
+			my_shared_ptr(otherPtr).swap(*this);
+			return *this;
+		}
+
+		template<class T2>
+		my_shared_ptr<T>& operator=(my_shared_ptr<T2>&& otherPtr) noexcept
+		{
+			my_shared_ptr(move(otherPtr)).swap(*this);
+			return *this;
 		}
 
 		my_shared_ptr<T>& operator=(my_shared_ptr<T>& otherPtr)
@@ -297,8 +335,7 @@ namespace smart_ptrs
 			{
 				delete _pControlBlock;
 #ifdef DEBUG
-				DEBUG_STRONG_REF_COUNT_DESTRUCTOR++;
-				DEBUG_WEAK_REF_COUNT_DESTRUCTOR++;
+				DEBUG_CONTROL_BLOCK_DESTRUCTOR++;
 #endif // DEBUG
 			}
 			else
@@ -345,7 +382,7 @@ namespace smart_ptrs
 			T* ptr;
 		};
 
-		struct CombinedControlBlock : ControlBlock // for make_shared funciton
+		struct CombinedControlBlock : ControlBlock
 		{
 			virtual void dispose() noexcept override
 			{
@@ -360,6 +397,23 @@ namespace smart_ptrs
 			alignas(T) char buffer[sizeof(T)];
 		};
 	};
+
+
+	template <class _Ty0, class... _Types>
+	my_shared_ptr<_Ty0> make_my_shared(_Types&&... args)
+	{
+		my_shared_ptr<_Ty0> ret;
+		_Ty0 val(args...);
+		struct my_shared_ptr<_Ty0>::CombinedControlBlock* pControlBlock = new struct my_shared_ptr<_Ty0>::CombinedControlBlock;
+		ret._pControlBlock = pControlBlock;
+		memcpy_s(pControlBlock->buffer, sizeof(_Ty0), &val, sizeof(_Ty0));
+		ret._ptr = pControlBlock->ptr();
+#ifdef DEBUG
+		DEBUG_OBJ_CONSTRUCTOR++;
+		DEBUG_CONTROL_BLOCK_CONSTRUCTOR++;
+#endif // DEBUG
+		return ret;
+	}
 
 }
 

@@ -13,16 +13,13 @@ using namespace smart_ptrs;
 bool test()
 {
 	bool allObjDestroyed = DEBUG_OBJ_CONSTRUCTOR == DEBUG_OBJ_DESTRUCTOR;
-	bool allStrongRefsDestroyed = DEBUG_STRONG_REF_COUNT_CONSTRUCTOR == DEBUG_STRONG_REF_COUNT_DESTRUCTOR;
-	bool allWeakRefsDestroyed = DEBUG_WEAK_REF_COUNT_CONSTRUCTOR == DEBUG_WEAK_REF_COUNT_DESTRUCTOR;
+	bool allControlBlocksDestroyed = DEBUG_CONTROL_BLOCK_CONSTRUCTOR == DEBUG_CONTROL_BLOCK_DESTRUCTOR;
 	cout << "All objects destroyed: " << allObjDestroyed << endl;
-	cout << "All strong refs object destroyed: " << allStrongRefsDestroyed << endl;
-	cout << "All weak refs object destroyed: " << allWeakRefsDestroyed << endl;
+	cout << "All contro blocks destroyed: " << allControlBlocksDestroyed << endl;
 
 	DEBUG_OBJ_CONSTRUCTOR = DEBUG_OBJ_DESTRUCTOR 
-		= DEBUG_STRONG_REF_COUNT_CONSTRUCTOR = DEBUG_STRONG_REF_COUNT_DESTRUCTOR 
-		= DEBUG_WEAK_REF_COUNT_CONSTRUCTOR = DEBUG_WEAK_REF_COUNT_DESTRUCTOR = 0;
-	return allObjDestroyed && allStrongRefsDestroyed && allWeakRefsDestroyed;
+		= DEBUG_CONTROL_BLOCK_CONSTRUCTOR = DEBUG_CONTROL_BLOCK_DESTRUCTOR = 0;
+	return allObjDestroyed && allControlBlocksDestroyed;
 }
 #endif // DEBUG
 
@@ -136,6 +133,8 @@ void testShared()
 	my_shared_ptr<int> shared2(new int(11), customDeleter2);
 
 	shared1 = shared2;
+
+	my_shared_ptr<int> makeShared1 = make_my_shared<int>(13);
 	cout << "END SHARED" << endl;
 }
 
@@ -226,6 +225,18 @@ void testWidget()
 	Widget::addChildToParent(calWidget1, calWidget2);
 
 	showWidgetDepth(parent);
+
+	shared_ptr<Widget> shared1 = std::make_shared<CalendarWidget>("NAME");
+	shared_ptr<CalendarWidget> shared2 = std::make_shared<CalendarWidget>("NAME");
+
+	shared1 = shared2;
+	//shared2 = shared1;
+
+	my_shared_ptr<Widget> makeShared1 = make_my_shared<CalendarWidget>("NAME");
+	my_shared_ptr<CalendarWidget> makeShared2 = make_my_shared<CalendarWidget>("NAME");
+
+	makeShared1 = makeShared2;
+	//makeShared2 = makeShared1;
 
 	cout << "END WIDGET" << endl;
 }
