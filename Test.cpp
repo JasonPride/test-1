@@ -232,10 +232,10 @@ void testWidget()
 	shared1 = shared2;
 	//shared2 = shared1;
 
-	my_shared_ptr<Widget> makeShared1 = make_my_shared<CalendarWidget>("NAME");
+	//my_shared_ptr<Widget> makeShared1 = make_my_shared<CalendarWidget>("NAME");
 	my_shared_ptr<CalendarWidget> makeShared2 = make_my_shared<CalendarWidget>("NAME");
 
-	makeShared1 = makeShared2;
+	//makeShared1 = makeShared2;
 	//makeShared2 = makeShared1;
 
 	cout << "END WIDGET" << endl;

@@ -358,6 +358,11 @@ namespace smart_ptrs
 			virtual void dispose() = 0;
 			std::atomic<unsigned long> refCount = { 1L };
 			std::atomic<unsigned long> weakCount = { 0L };
+
+			ControlBlock& operator=(const ControlBlock& other)
+			{
+
+			}
 		};
 
 		struct SeparateControlBlock : ControlBlock
@@ -378,6 +383,8 @@ namespace smart_ptrs
 			{
 				deleter(ptr);
 			}
+
+			
 			Deleter deleter;
 			T* ptr;
 		};
@@ -389,7 +396,7 @@ namespace smart_ptrs
 				ptr()->~T();
 			}
 
-			T* ptr() 
+			T* ptr()
 			{
 				return reinterpret_cast<T*>(buffer);
 			}
@@ -403,10 +410,9 @@ namespace smart_ptrs
 	my_shared_ptr<_Ty0> make_my_shared(_Types&&... args)
 	{
 		my_shared_ptr<_Ty0> ret;
-		_Ty0 val(args...);
 		struct my_shared_ptr<_Ty0>::CombinedControlBlock* pControlBlock = new struct my_shared_ptr<_Ty0>::CombinedControlBlock;
+		new (pControlBlock->buffer) _Ty0(args...);
 		ret._pControlBlock = pControlBlock;
-		memcpy_s(pControlBlock->buffer, sizeof(_Ty0), &val, sizeof(_Ty0));
 		ret._ptr = pControlBlock->ptr();
 #ifdef DEBUG
 		DEBUG_OBJ_CONSTRUCTOR++;
