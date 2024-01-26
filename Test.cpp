@@ -238,8 +238,9 @@ void testWidget()
 	shared1 = shared2;
 	//shared2 = shared1;
 
-	my_shared_ptr<Widget> makeShared1 = make_my_shared<CalendarWidget>("NAME");
-	my_shared_ptr<CalendarWidget> makeShared2 = make_my_shared<CalendarWidget>("NAME");
+	my_shared_ptr<Widget> makeShared1 = make_my_shared<CalendarWidget>("NAME CALENDAR1");
+	my_shared_ptr<CalendarWidget> makeShared2(new CalendarWidget("NAME CALENDAR2"));
+	my_shared_ptr<CalendarWidget> makeShared3 = make_my_shared<CalendarWidget>("NAME");
 
 	makeShared1 = makeShared2;
 	//makeShared2 = makeShared1;

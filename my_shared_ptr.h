@@ -8,9 +8,6 @@ namespace smart_ptrs
 	template<class T>
 	class my_shared_ptr;
 
-	template <class _Ty0, class... _Types>
-	my_shared_ptr<_Ty0> make_my_shared(_Types&&... args);
-
 	struct ControlBlock
 	{
 		virtual void dispose() = 0;
@@ -50,7 +47,7 @@ namespace smart_ptrs
 	template <class T>
 	struct CombinedControlBlock : ControlBlock
 	{
-		CombinedControlBlock() {}
+		CombinedControlBlock() : ControlBlock() {}
 
 		virtual void dispose() noexcept override
 		{
@@ -259,14 +256,50 @@ namespace smart_ptrs
 		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
 		my_shared_ptr<T>& operator=(const my_shared_ptr<T2>& otherPtr)
 		{
-			my_shared_ptr(otherPtr).swap(*this);
+			if ((void*)this == (void*) (&otherPtr))
+			{
+				return *this;
+			}
+			if (_pControlBlock)
+			{
+				if (_pControlBlock->refCount.load() == 1)
+				{
+					destruct();
+				}
+				else
+				{
+					_pControlBlock->refCount.fetch_sub(1);
+				}
+			}
+			_ptr = otherPtr._ptr;
+			_pControlBlock = otherPtr._pControlBlock;
+			_pControlBlock->refCount.fetch_add(1);
 			return *this;
 		}
 
 		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
 		my_shared_ptr<T>& operator=(my_shared_ptr<T2>&& otherPtr) noexcept
 		{
-			my_shared_ptr(move(otherPtr)).swap(*this);
+			if ((void*)this == (void*)(&otherPtr))
+			{
+				return *this;
+			}
+			if (_pControlBlock)
+			{
+				if (_pControlBlock->refCount.load() == 1)
+				{
+					destruct();
+				}
+				else
+				{
+					_pControlBlock->refCount.fetch_sub(1);
+				}
+			}
+			_ptr = otherPtr._ptr;
+			otherPtr._ptr = nullptr;
+			_pControlBlock = otherPtr._pControlBlock;
+			otherPtr._pControlBlock = nullptr;
+
 			return *this;
 		}
 
