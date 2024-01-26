@@ -187,7 +187,6 @@ namespace smart_ptrs
 		template<class T2> friend class my_shared_ptr;
 		template <class _Ty0, class... _Types>
 		friend my_shared_ptr<_Ty0> make_my_shared(_Types&&... _Args);
-		friend struct ControlBlock;
 
 	public:
 		typedef void(*Deleter)(T*);
