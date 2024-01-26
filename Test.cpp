@@ -88,6 +88,12 @@ void testShared()
 {
 	cout << "TESTING SHARED" << endl;
 
+	shared_ptr<CalendarWidget> pInt1 = make_shared<CalendarWidget>("13");
+	shared_ptr<Widget> pInt2(pInt1);
+
+	pInt2->getType();
+
+
 	my_shared_ptr<int> pShared1(new int(10));
 	my_shared_ptr<int> pShared2(pShared1);
 	my_shared_ptr<int> pShared3(new int(20));
@@ -232,10 +238,10 @@ void testWidget()
 	shared1 = shared2;
 	//shared2 = shared1;
 
-	//my_shared_ptr<Widget> makeShared1 = make_my_shared<CalendarWidget>("NAME");
+	my_shared_ptr<Widget> makeShared1 = make_my_shared<CalendarWidget>("NAME");
 	my_shared_ptr<CalendarWidget> makeShared2 = make_my_shared<CalendarWidget>("NAME");
 
-	//makeShared1 = makeShared2;
+	makeShared1 = makeShared2;
 	//makeShared2 = makeShared1;
 
 	cout << "END WIDGET" << endl;

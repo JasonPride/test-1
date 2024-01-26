@@ -11,6 +11,61 @@ namespace smart_ptrs
 	template <class _Ty0, class... _Types>
 	my_shared_ptr<_Ty0> make_my_shared(_Types&&... args);
 
+	struct ControlBlock
+	{
+		virtual void dispose() = 0;
+		std::atomic<unsigned long> refCount = { 1L };
+		std::atomic<unsigned long> weakCount = { 0L };
+	};
+
+	template <class T>
+	struct SeparateControlBlock : ControlBlock
+	{
+		typedef typename my_shared_ptr<T>::Deleter Deleter;
+		SeparateControlBlock(T* ptr) : ControlBlock()
+		{
+			this->ptr = ptr;
+			deleter = defaultDeleter;
+		}
+
+		SeparateControlBlock(T* ptr, Deleter deleter) : ControlBlock()
+		{
+			this->ptr = ptr;
+			this->deleter = deleter;
+		}
+
+		virtual void dispose() noexcept override
+		{
+			deleter(ptr);
+		}
+	private:
+		static void defaultDeleter(T* ptr)
+		{
+			delete ptr;
+		}
+		Deleter deleter;
+		T* ptr;
+	};
+
+	template <class T>
+	struct CombinedControlBlock : ControlBlock
+	{
+		CombinedControlBlock() {}
+
+		virtual void dispose() noexcept override
+		{
+			ptr()->~T();
+		}
+
+		T* ptr()
+		{
+			return reinterpret_cast<T*>(buffer);
+		}
+
+		alignas(T) char buffer[sizeof(T)] = { 0 };
+	};
+
+
 	template<class T>
 	class my_weak_ptr
 	{
@@ -111,7 +166,7 @@ namespace smart_ptrs
 
 	private:
 		my_shared_ptr<T>* _sharedPtr;
-		struct my_shared_ptr<T>::ControlBlock* _pControlBlock;
+		ControlBlock* _pControlBlock;
 
 		void descruct()
 		{
@@ -135,6 +190,7 @@ namespace smart_ptrs
 		template<class T2> friend class my_shared_ptr;
 		template <class _Ty0, class... _Types>
 		friend my_shared_ptr<_Ty0> make_my_shared(_Types&&... _Args);
+		friend struct ControlBlock;
 
 	public:
 		typedef void(*Deleter)(T*);
@@ -148,7 +204,7 @@ namespace smart_ptrs
 		my_shared_ptr(T* ptr)
 		{
 			_ptr = ptr;
-			_pControlBlock = new SeparateControlBlock(ptr);
+			_pControlBlock = new SeparateControlBlock<T>(ptr);
 #ifdef DEBUG
 			DEBUG_OBJ_CONSTRUCTOR++;
 			DEBUG_CONTROL_BLOCK_CONSTRUCTOR++;
@@ -159,7 +215,7 @@ namespace smart_ptrs
 		my_shared_ptr(T* ptr, Deleter deleter)
 		{
 			_ptr = ptr;
-			_pControlBlock = new SeparateControlBlock(ptr, deleter);
+			_pControlBlock = new SeparateControlBlock<T>(ptr, deleter);
 #ifdef DEBUG
 			DEBUG_OBJ_CONSTRUCTOR++; 
 			DEBUG_CONTROL_BLOCK_CONSTRUCTOR++;
@@ -181,10 +237,12 @@ namespace smart_ptrs
 			otherPtr._ptr = nullptr;
 		}
 
+#pragma region Can construct and assign with base compatible type
+
 		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
 		my_shared_ptr(const my_shared_ptr<T2>& otherPtr)
 		{
-			_ptr = otherPtr._ptr; 
+			_ptr = otherPtr._ptr;
 			_pControlBlock = otherPtr._pControlBlock;
 			_pControlBlock->refCount.fetch_add(1);
 		}
@@ -197,6 +255,22 @@ namespace smart_ptrs
 			_ptr = otherPtr._ptr;
 			otherPtr._ptr = nullptr;
 		}
+
+		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
+		my_shared_ptr<T>& operator=(const my_shared_ptr<T2>& otherPtr)
+		{
+			my_shared_ptr(otherPtr).swap(*this);
+			return *this;
+		}
+
+		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
+		my_shared_ptr<T>& operator=(my_shared_ptr<T2>&& otherPtr) noexcept
+		{
+			my_shared_ptr(move(otherPtr)).swap(*this);
+			return *this;
+		}
+
+#pragma endregion
 
 		~my_shared_ptr()
 		{
@@ -212,20 +286,6 @@ namespace smart_ptrs
 			{
 				_pControlBlock->refCount.fetch_sub(1);
 			}
-		}
-
-		template<class T2, enable_if_t<_SP_pointer_compatible<T2, T>::value, int> = 0>
-		my_shared_ptr<T>& operator=(const my_shared_ptr<T2>& otherPtr)
-		{
-			my_shared_ptr(otherPtr).swap(*this);
-			return *this;
-		}
-
-		template<class T2>
-		my_shared_ptr<T>& operator=(my_shared_ptr<T2>&& otherPtr) noexcept
-		{
-			my_shared_ptr(move(otherPtr)).swap(*this);
-			return *this;
 		}
 
 		my_shared_ptr<T>& operator=(my_shared_ptr<T>& otherPtr)
@@ -319,7 +379,6 @@ namespace smart_ptrs
 		}
 
 	private:
-		struct ControlBlock;
 
 		T* _ptr = nullptr;
 		ControlBlock* _pControlBlock = nullptr;
@@ -347,62 +406,6 @@ namespace smart_ptrs
 			DEBUG_OBJ_DESTRUCTOR++;
 #endif // DEBUG
 		}
-
-		static void defaultDeleter(T* ptr)
-		{
-			delete ptr;
-		}
-
-		struct ControlBlock
-		{
-			virtual void dispose() = 0;
-			std::atomic<unsigned long> refCount = { 1L };
-			std::atomic<unsigned long> weakCount = { 0L };
-
-			ControlBlock& operator=(const ControlBlock& other)
-			{
-
-			}
-		};
-
-		struct SeparateControlBlock : ControlBlock
-		{
-			SeparateControlBlock(T* ptr) : ControlBlock()
-			{
-				this->ptr = ptr;
-				deleter = defaultDeleter;
-			}
-
-			SeparateControlBlock(T* ptr, Deleter deleter) : ControlBlock()
-			{
-				this->ptr = ptr;
-				this->deleter = deleter;
-			}
-
-			virtual void dispose() noexcept override
-			{
-				deleter(ptr);
-			}
-
-			
-			Deleter deleter;
-			T* ptr;
-		};
-
-		struct CombinedControlBlock : ControlBlock
-		{
-			virtual void dispose() noexcept override
-			{
-				ptr()->~T();
-			}
-
-			T* ptr()
-			{
-				return reinterpret_cast<T*>(buffer);
-			}
-
-			alignas(T) char buffer[sizeof(T)];
-		};
 	};
 
 
@@ -410,7 +413,7 @@ namespace smart_ptrs
 	my_shared_ptr<_Ty0> make_my_shared(_Types&&... args)
 	{
 		my_shared_ptr<_Ty0> ret;
-		struct my_shared_ptr<_Ty0>::CombinedControlBlock* pControlBlock = new struct my_shared_ptr<_Ty0>::CombinedControlBlock;
+		CombinedControlBlock<_Ty0>* pControlBlock = new CombinedControlBlock<_Ty0>;
 		new (pControlBlock->buffer) _Ty0(args...);
 		ret._pControlBlock = pControlBlock;
 		ret._ptr = pControlBlock->ptr();
@@ -420,6 +423,5 @@ namespace smart_ptrs
 #endif // DEBUG
 		return ret;
 	}
-
 }
 
